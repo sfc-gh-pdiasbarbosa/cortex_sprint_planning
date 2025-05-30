@@ -1,33 +1,20 @@
-import re
-import streamlit as st
-from snowflake.snowpark.context import get_active_session
+from helper.session import *
 
-# Set page config to wide.
-st.set_page_config(layout="wide")
+session = create_session()
 
-st.markdown("""
-<style>
-.card-container {
-    padding: 10px;
-    border: 2px solid #ccc;
-    border-radius: 5px;
-    margin: 5px;
-    background-color: #f9f9f9;
-    height: 150px;         /* Set a fixed height for all cards */
-    overflow-y: auto;
-}
-.card-container.highlighted {
-    border-color: #0000ff; /* Highlighted border color */
-}
-</style>
-""", unsafe_allow_html=True)
-
-# Get the active Snowpark session (native Streamlit app within Snowflake)
-session = get_active_session()
-
-def select_task(task):
-    st.session_state.selected_task = task
-    st.rerun()
+def generate_session_state():
+    if 'requirements_doc' not in st.session_state:
+        st.session_state.requirements_doc = None  # list of requirement cards
+    if 'requirements' not in st.session_state:
+        st.session_state.requirements = []  # list of requirement cards
+    if 'epics' not in st.session_state:
+        st.session_state.epics = []         # list of agile epic cards
+    if 'stories' not in st.session_state:
+        st.session_state.stories = []       # list of user story cards
+    if 'tasks' not in st.session_state:
+        st.session_state.tasks = []         # list of task cards
+    if 'next_id' not in st.session_state:
+        st.session_state.next_id = 1
 
 # --- Custom complete function using Snowpark SQL ---
 def complete(model, prompt):
@@ -91,10 +78,10 @@ def delete_card(card, card_type):
 def card_details_dialog(card, card_type):
     new_text = st.text_area("", value=card["text"], key=f"text_{card_type}_{card['id']}", height=300)
     btn_cols = st.columns([1, 1, 4])
-    if btn_cols[0].button("Save", type="primary", key=f"save_{card_type}_{card['id']}"):
+    if btn_cols[0].button("Save", type="primary", key=f"save_{card_type}_{card['id']}", use_container_width=True):
         card["text"] = new_text
         st.rerun()
-    if btn_cols[1].button("Cancel", key=f"cancel_{card_type}_{card['id']}"):
+    if btn_cols[1].button("Cancel", key=f"cancel_{card_type}_{card['id']}", use_container_width=True):
         st.rerun()
 
 # --- Dialog for adding a new requirement ---
@@ -102,10 +89,10 @@ def card_details_dialog(card, card_type):
 def add_requirement_dialog():
     req_text = st.text_area("Paste requirement text here:", value="", key="new_req_dialog", height=150)
     btn_cols = st.columns([1, 1, 4])
-    if btn_cols[0].button("Save", type="primary", key="save_new_req"):
+    if btn_cols[0].button("Save", type="primary", key="save_new_req", use_container_width=True):
         st.session_state.new_requirement = req_text
         st.rerun()
-    if btn_cols[1].button("Cancel", key="cancel_new_req"):
+    if btn_cols[1].button("Cancel", key="cancel_new_req", use_container_width=True):
         st.rerun()
 
 # --- Cortex AI Functions for Extra Actions ---
@@ -178,83 +165,12 @@ def render_card(card, card_type, extra_actions=None, highlight=False):
                 callback(card)
         st.markdown("</div>", unsafe_allow_html=True)
 
-# --- Session State Initialization ---
-if 'requirements' not in st.session_state:
-    st.session_state.requirements = []  # list of requirement cards
-if 'epics' not in st.session_state:
-    st.session_state.epics = []         # list of agile epic cards
-if 'stories' not in st.session_state:
-    st.session_state.stories = []       # list of user story cards
-if 'tasks' not in st.session_state:
-    st.session_state.tasks = []         # list of task cards
-if 'next_id' not in st.session_state:
-    st.session_state.next_id = 1
 
 def get_next_id():
     current = st.session_state.next_id
     st.session_state.next_id += 1
     return current
 
-# --- Main UI ---
-st.title("Agile Sprint Planning With Cortex")
-
-# Create four columns with dynamic width (wider layout)
-col_req, col_epic, col_story, col_task = st.columns(4, gap="medium")
-
-# --- Requirements Column ---
-with col_req:
-    st.markdown("### Requirements")
-    for req in st.session_state.requirements:
-        highlight = False
-        if "selected_task" in st.session_state:
-            if req["id"] == st.session_state.selected_task.get("req_id"):
-                highlight = True
-        # Extra action button: convert requirement into an epic.
-        extra = [ (":material/auto_fix_high:", "convert_req", convert_to_epic) ]
-        render_card(req, "requirement", extra_actions=extra, highlight=highlight)
-    if st.button("➕", key="btn_add_requirement"):
-        add_requirement_dialog()
-    if "new_requirement" in st.session_state:
-        new_req_text = st.session_state.new_requirement
-        if new_req_text.strip():
-            st.session_state.requirements.append({
-                "id": get_next_id(),
-                "text": new_req_text.strip()
-            })
-        del st.session_state.new_requirement
-        st.rerun()
-
-# --- Epics Column ---
-with col_epic:
-    st.markdown("### Agile Epics")
-    for epic in st.session_state.epics:
-        highlight = False
-        if "selected_task" in st.session_state:
-            if epic["id"] == st.session_state.selected_task.get("epic_id"):
-                highlight = True
-        # Extra action button: generate user stories from the epic.
-        extra = [ (":material/auto_fix_high:", "gen_stories", generate_stories_for_epic) ]
-        render_card(epic, "epic", extra_actions=extra, highlight=highlight)
-
-# --- Stories Column ---
-with col_story:
-    st.markdown("### User Stories")
-    for story in st.session_state.stories:
-        highlight = False
-        if "selected_task" in st.session_state:
-            if story["id"] == st.session_state.selected_task.get("story_id"):
-                highlight = True
-        # Extra action button: break the story into tasks.
-        extra = [ (":material/auto_fix_high:", "break_story", break_story) ]
-        render_card(story, "story", extra_actions=extra, highlight=highlight)
-
-# --- Tasks Column ---
-with col_task:
-    st.markdown("### Tasks")
-    for task in st.session_state.tasks:
-        highlight = False
-        if "selected_task" in st.session_state:
-            if task["id"] == st.session_state.selected_task.get("id"):
-                highlight = True
-        # Task cards will show the default info button and highlight if selected.
-        render_card(task, "task", highlight=highlight)
+def select_task(task):
+    st.session_state.selected_task = task
+    st.rerun()
