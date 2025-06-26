@@ -65,6 +65,9 @@ if st.session_state.requirements_doc:
                 # Extra action button: generate user stories from the epic.
                 extra = [ (":material/auto_fix_high:", "gen_stories", generate_stories_for_epic) ]
                 render_card(epic, "epic", extra_actions=extra, highlight=highlight)
+            
+            # if st.button("➕", key="btn_add_epic", use_container_width=True):
+            #     add_card("Epic")
 
         # --- Stories Column ---
         with col_story:
@@ -81,6 +84,9 @@ if st.session_state.requirements_doc:
                 # Extra action button: break the story into tasks.
                 extra = [ (":material/auto_fix_high:", "break_story", break_story) ]
                 render_card(story, "story", extra_actions=extra, highlight=highlight)
+            
+            # if st.button("➕", key="btn_add_user_story", use_container_width=True):
+            #     add_card("Story")
 
         # --- Tasks Column ---
         with col_task:
@@ -96,6 +102,9 @@ if st.session_state.requirements_doc:
                         highlight = True
                 # Task cards will show the default info button and highlight if selected.
                 render_card(task, "task", highlight=highlight)
+
+            # if st.button("➕", key="btn_add_task", use_container_width=True):
+            #     add_card("Task")
 
     if st.button("Edit Project Requirements", use_container_width=True, type='primary'):
         add_requirement_dialog()

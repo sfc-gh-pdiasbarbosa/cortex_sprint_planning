@@ -99,13 +99,48 @@ def card_details_dialog(card, card_type):
         card["text"] = new_text
         st.session_state[save_key] = True
         st.rerun()
-    cancel_disabled = st.session_state[save_key]
     if btn_cols[1].button("Cancel", key=f"cancel_{card_type}_{card['id']}", use_container_width=True):
-        disabled=cancel_disabled
+        st.session_state[save_key] = False
         st.rerun()
 
+
 # --- Dialog for adding a new requirement ---
-@st.dialog("Add Requirement", width="large")
+# @st.dialog("Add Requirement", width="large")
+# def add_card(card_type):
+
+#     text = st.text_area(
+#         placeholder="Type here...",
+#         label=f"{card_type} Requirements",
+#         height=300,
+#         label_visibility='collapsed',
+#         max_chars=400
+#     )        
+
+#     btn_cols = st.columns([1, 1, 4])
+#     if btn_cols[0].button("Save", type="primary", use_container_width=True):
+#         if card_type == 'Epic':
+#             st.session_state.epics.append({
+#                 "id": get_next_id(),
+#                 "text": text
+#             })
+#         elif card_type == 'Story':
+#             st.session_state.stories.append({
+#              "id": get_next_id(),
+#              "text": text
+#             })
+#         else:
+#             st.session_state.tasks.append({
+#              "id": get_next_id(),
+#              "text": text
+#             })
+
+#         st.rerun()
+#     if btn_cols[1].button("Cancel", use_container_width=True):
+#         st.rerun()
+
+
+# --- Dialog for adding a new requirement ---
+@st.dialog("Edit Requirements", width="large")
 def add_requirement_dialog():
     save_clicked_key = "new_req_save_clicked"
     if save_clicked_key not in st.session_state:
